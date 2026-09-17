@@ -1,6 +1,7 @@
 import express from "express";
 import User from "../users/user.model.js";
 import { hashPassword } from "../../utils/password.js";
+import loginRoutes from "./login.routes.js";
 
 const router = express.Router();
 
@@ -64,5 +65,7 @@ router.post("/register", async (req, res) => {
     });
   }
 });
+
+router.use("/login", loginRoutes);
 
 export default router;
