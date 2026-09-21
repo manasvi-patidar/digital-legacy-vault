@@ -1,6 +1,11 @@
 import User from "../users/user.model.js";
 import { hashPassword, comparePassword } from "../../utils/password.js";
-import { generateAccessToken } from "../../utils/jwt.js";
+import Session from "../sessions/session.model.js";
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  hashRefreshToken,
+} from "../../utils/jwt.js";
 
 export const register = async (req, res) => {
   try {
@@ -105,10 +110,27 @@ export const login = async (req, res) => {
 
     const accessToken = generateAccessToken(user);
 
+    const refreshToken = generateRefreshToken();
+
+    const refreshTokenHash = hashRefreshToken(refreshToken);
+
+    const refreshTokenExpiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    );
+
+    await Session.create({
+      userId: user._id,
+      refreshTokenHash,
+      expiresAt: refreshTokenExpiresAt,
+      userAgent: req.get("user-agent") || null,
+      ipAddress: req.ip || null,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
       accessToken,
+      refreshToken,
       user: {
         id: user._id,
         name: user.name,
@@ -157,6 +179,95 @@ export const getMe = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Something went wrong while fetching user",
+    });
+  }
+};
+
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
+
+    const refreshTokenHash = hashRefreshToken(refreshToken);
+
+    const session = await Session.findOne({
+      refreshTokenHash,
+      expiresAt: { $gt: new Date() },
+    }).select("+refreshTokenHash");
+
+    if (!session) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired refresh token",
+      });
+    }
+
+    const user = await User.findById(session.userId);
+
+    if (!user || user.accountStatus !== "ACTIVE") {
+      return res.status(401).json({
+        success: false,
+        message: "User account is not available",
+      });
+    }
+
+    const accessToken = generateAccessToken(user);
+
+    return res.status(200).json({
+      success: true,
+      message: "Access token refreshed successfully",
+      accessToken,
+    });
+  } catch (error) {
+    console.error("Refresh token error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while refreshing token",
+    });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
+
+    const refreshTokenHash = hashRefreshToken(refreshToken);
+
+    const deletedSession = await Session.findOneAndDelete({
+      refreshTokenHash,
+    });
+
+    if (!deletedSession) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong during logout",
     });
   }
 };
