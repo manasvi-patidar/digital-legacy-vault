@@ -9,12 +9,12 @@ import {
 
 import protect from "../../middleware/auth.middleware.js";
 import validateRequest from "../../middleware/validation.middleware.js";
-import { registerValidation } from "./auth.validation.js";
+import { registerValidation, loginValidation } from "./auth.validation.js";
 
 const router = express.Router();
 
 router.post("/register", registerValidation, validateRequest, register); //POST /api/v1/auth/register
-router.post("/login", login);
+router.post("/login", loginValidation, validateRequest, login);
 router.post("/refresh", refreshAccessToken);
 router.post("/logout", logout);
 
