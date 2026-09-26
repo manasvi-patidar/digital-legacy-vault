@@ -1,6 +1,7 @@
+import User from "../modules/users/user.model.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization;
 
@@ -21,6 +22,22 @@ const protect = (req, res, next) => {
     }
 
     const decoded = verifyAccessToken(token);
+
+    const user = await User.findById(decoded.userId).select("accountStatus");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User account not found",
+      });
+    }
+
+    if (user.accountStatus !== "ACTIVE") {
+      return res.status(403).json({
+        success: false,
+        message: "User account is not active",
+      });
+    }
 
     req.user = decoded;
 
