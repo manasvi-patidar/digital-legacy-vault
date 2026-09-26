@@ -10,6 +10,7 @@ export const registerValidation = [
 
   body("email")
     .trim()
+    .normalizeEmail()
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
@@ -33,6 +34,7 @@ export const registerValidation = [
 export const loginValidation = [
   body("email")
     .trim()
+    .normalizeEmail()
     .notEmpty()
     .withMessage("Email is required")
     .isEmail()
