@@ -217,12 +217,27 @@ export const refreshAccessToken = async (req, res) => {
       });
     }
 
-    const accessToken = generateAccessToken(user);
+    //Refresh Token Rotation
+    const newAccessToken = generateAccessToken(user);
+
+    const newRefreshToken = generateRefreshToken();
+
+    const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+
+    const newRefreshTokenExpiresAt = new Date(
+      Date.now() + 7 * 24 * 60 * 60 * 1000,
+    );
+
+    session.refreshTokenHash = newRefreshTokenHash;
+    session.expiresAt = newRefreshTokenExpiresAt;
+
+    await session.save();
 
     return res.status(200).json({
       success: true,
       message: "Access token refreshed successfully",
-      accessToken,
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     });
   } catch (error) {
     console.error("Refresh token error:", error);
