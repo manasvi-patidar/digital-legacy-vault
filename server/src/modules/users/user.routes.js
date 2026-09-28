@@ -1,6 +1,14 @@
 import express from "express";
-import { getMyProfile, updateMyProfile } from "./user.controller.js";
-import { updateProfileValidation } from "./user.validation.js";
+import {
+  getMyProfile,
+  updateMyProfile,
+  changeMyPassword,
+} from "./user.controller.js";
+
+import {
+  updateProfileValidation,
+  changePasswordValidation,
+} from "./user.validation.js";
 import protect from "../../middleware/auth.middleware.js";
 import validateRequest from "../../middleware/validation.middleware.js";
 
@@ -14,6 +22,14 @@ router.patch(
   updateProfileValidation,
   validateRequest,
   updateMyProfile,
+);
+
+router.patch(
+  "/me/password",
+  protect,
+  changePasswordValidation,
+  validateRequest,
+  changeMyPassword,
 );
 
 export default router;

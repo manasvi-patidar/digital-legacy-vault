@@ -1,4 +1,6 @@
 import User from "./user.model.js";
+import { comparePassword, hashPassword } from "../../utils/password.js";
+import Session from "../sessions/session.model.js";
 
 export const getMyProfile = async (req, res) => {
   try {
@@ -100,6 +102,57 @@ export const updateMyProfile = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Something went wrong while updating profile",
+    });
+  }
+};
+
+export const changeMyPassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be different from current password",
+      });
+    }
+
+    const user = await User.findById(req.user.userId).select("+passwordHash");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isPasswordValid = await comparePassword(
+      currentPassword,
+      user.passwordHash,
+    );
+
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    user.passwordHash = await hashPassword(newPassword);
+    await user.save();
+
+    await Session.deleteMany({ userId: user._id });
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully. Please log in again.",
+    });
+  } catch (error) {
+    console.error("Change password error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while changing password",
     });
   }
 };
