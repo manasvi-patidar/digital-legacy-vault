@@ -38,7 +38,13 @@ const userSchema = new mongoose.Schema(
 
     accountStatus: {
       type: String,
-      enum: ["ACTIVE", "SUSPENDED", "DECEASED_PENDING", "DECEASED_VERIFIED"],
+      enum: [
+        "ACTIVE",
+        "DEACTIVATED",
+        "SUSPENDED",
+        "DECEASED_PENDING",
+        "DECEASED_VERIFIED",
+      ],
       default: "ACTIVE",
     },
 

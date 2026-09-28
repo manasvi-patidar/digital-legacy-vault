@@ -38,3 +38,9 @@ export const changePasswordValidation = [
     .matches(/[^A-Za-z0-9]/)
     .withMessage("Password must contain at least one special character"),
 ];
+
+export const deactivateAccountValidation = [
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current password is required"),
+];
