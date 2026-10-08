@@ -62,16 +62,14 @@ const guardianSchema = new mongoose.Schema(
 
 guardianSchema.index({ ownerId: 1, guardianUserId: 1 }, { unique: true });
 
-guardianSchema.pre("validate", function (next) {
+guardianSchema.pre("validate", function () {
   if (
     this.ownerId &&
     this.guardianUserId &&
     this.ownerId.equals(this.guardianUserId)
   ) {
-    return next(new Error("A user cannot be their own guardian"));
+    throw new Error("A user cannot be their own guardian");
   }
-
-  next();
 });
 
 const Guardian = mongoose.model("Guardian", guardianSchema);

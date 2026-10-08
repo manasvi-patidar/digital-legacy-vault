@@ -104,3 +104,88 @@ export const addGuardian = async (req, res) => {
     });
   }
 };
+
+export const acceptGuardianInvitation = async (req, res) => {
+  try {
+    const guardian = await Guardian.findOne({
+      _id: req.params.guardianId,
+      guardianUserId: req.user.userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian invitation not found",
+      });
+    }
+
+    if (guardian.status !== "PENDING") {
+      return res.status(409).json({
+        success: false,
+        message: `Guardian invitation cannot be accepted because its current status is ${guardian.status}`,
+      });
+    }
+
+    const guardianUser = await User.findById(req.user.userId).select(
+      "name email accountStatus",
+    );
+
+    if (!guardianUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian account not found",
+      });
+    }
+
+    if (guardianUser.accountStatus !== "ACTIVE") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is not active",
+      });
+    }
+
+    guardian.status = "ACTIVE";
+    guardian.acceptedAt = new Date();
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian invitation accepted successfully",
+      guardian: {
+        id: guardian._id,
+        ownerId: guardian.ownerId,
+        guardianUserId: guardian.guardianUserId,
+        relationship: guardian.relationship,
+        status: guardian.status,
+        permissions: guardian.permissions,
+        invitedAt: guardian.invitedAt,
+        acceptedAt: guardian.acceptedAt,
+        revokedAt: guardian.revokedAt,
+        createdAt: guardian.createdAt,
+        updatedAt: guardian.updatedAt,
+      },
+    });
+  } catch (error) {
+    if (error.name === "CastError") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid guardian invitation ID",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    console.error("Accept guardian invitation error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while accepting guardian invitation",
+    });
+  }
+};
