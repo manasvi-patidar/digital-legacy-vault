@@ -246,3 +246,51 @@ export const getGuardians = async (req, res) => {
     });
   }
 };
+
+export const revokeGuardian = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      ownerId: userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian relationship not found",
+      });
+    }
+
+    if (guardian.status === "REVOKED") {
+      return res.status(400).json({
+        success: false,
+        message: "Guardian relationship is already revoked",
+      });
+    }
+
+    guardian.status = "REVOKED";
+    guardian.revokedAt = new Date();
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian relationship revoked successfully",
+      guardian: {
+        id: guardian._id,
+        status: guardian.status,
+        revokedAt: guardian.revokedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Revoke guardian error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while revoking guardian",
+    });
+  }
+};

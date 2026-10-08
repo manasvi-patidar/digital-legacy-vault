@@ -4,6 +4,7 @@ import {
   addGuardian,
   acceptGuardianInvitation,
   getGuardians,
+  revokeGuardian,
 } from "./guardian.controller.js";
 
 import { addGuardianValidation } from "./guardian.validation.js";
@@ -18,5 +19,7 @@ router.post("/", protect, addGuardianValidation, validateRequest, addGuardian);
 router.get("/", protect, getGuardians);
 
 router.patch("/:guardianId/accept", protect, acceptGuardianInvitation);
+
+router.patch("/:guardianId/revoke", protect, revokeGuardian);
 
 export default router;
