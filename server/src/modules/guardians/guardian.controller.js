@@ -189,3 +189,60 @@ export const acceptGuardianInvitation = async (req, res) => {
     });
   }
 };
+
+export const getGuardians = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const guardians = await Guardian.find({
+      $or: [{ ownerId: userId }, { guardianUserId: userId }],
+    })
+      .populate("ownerId", "name email accountStatus")
+      .populate("guardianUserId", "name email accountStatus")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const formattedGuardians = guardians.map((guardian) => ({
+      id: guardian._id,
+      relationship: guardian.relationship,
+      status: guardian.status,
+      permissions: guardian.permissions,
+      invitedAt: guardian.invitedAt,
+      acceptedAt: guardian.acceptedAt,
+      revokedAt: guardian.revokedAt,
+      createdAt: guardian.createdAt,
+      updatedAt: guardian.updatedAt,
+
+      owner: guardian.ownerId
+        ? {
+            id: guardian.ownerId._id,
+            name: guardian.ownerId.name,
+            email: guardian.ownerId.email,
+            accountStatus: guardian.ownerId.accountStatus,
+          }
+        : null,
+
+      guardian: guardian.guardianUserId
+        ? {
+            id: guardian.guardianUserId._id,
+            name: guardian.guardianUserId.name,
+            email: guardian.guardianUserId.email,
+            accountStatus: guardian.guardianUserId.accountStatus,
+          }
+        : null,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: formattedGuardians.length,
+      guardians: formattedGuardians,
+    });
+  } catch (error) {
+    console.error("Get guardians error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching guardians",
+    });
+  }
+};
