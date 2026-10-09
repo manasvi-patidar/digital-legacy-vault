@@ -413,3 +413,51 @@ export const cancelGuardianInvitation = async (req, res) => {
     });
   }
 };
+
+export const resendGuardianInvitation = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      ownerId: userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian relationship not found",
+      });
+    }
+
+    if (guardian.status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending invitations can be resent",
+      });
+    }
+
+    // Refresh invitation timestamp
+    guardian.invitedAt = new Date();
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian invitation updated successfully",
+      guardian: {
+        id: guardian._id,
+        status: guardian.status,
+        invitedAt: guardian.invitedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Resend guardian invitation error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while resending invitation",
+    });
+  }
+};
