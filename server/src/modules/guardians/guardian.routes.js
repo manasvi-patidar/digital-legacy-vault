@@ -8,6 +8,7 @@ import {
   updateGuardianPermissions,
   cancelGuardianInvitation,
   resendGuardianInvitation,
+  rejectGuardianInvitation,
 } from "./guardian.controller.js";
 
 import { addGuardianValidation } from "./guardian.validation.js";
@@ -30,5 +31,7 @@ router.patch("/:guardianId/permissions", protect, updateGuardianPermissions);
 router.patch("/:guardianId/cancel", protect, cancelGuardianInvitation);
 
 router.post("/:guardianId/resend", protect, resendGuardianInvitation);
+
+router.patch("/:guardianId/reject", protect, rejectGuardianInvitation);
 
 export default router;

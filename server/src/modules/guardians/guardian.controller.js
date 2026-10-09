@@ -461,3 +461,51 @@ export const resendGuardianInvitation = async (req, res) => {
     });
   }
 };
+
+export const rejectGuardianInvitation = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+
+    // Find recipient's invitation
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      guardianUserId: userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian invitation not found",
+      });
+    }
+
+    if (guardian.status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: "Only pending invitations can be rejected",
+      });
+    }
+
+    guardian.status = "REJECTED";
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian invitation rejected successfully",
+      guardian: {
+        id: guardian._id,
+        status: guardian.status,
+        updatedAt: guardian.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Reject guardian invitation error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while rejecting invitation",
+    });
+  }
+};
