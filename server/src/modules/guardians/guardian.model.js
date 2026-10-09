@@ -25,7 +25,7 @@ const guardianSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["PENDING", "ACTIVE", "REJECTED", "REVOKED"],
+      enum: ["PENDING", "ACTIVE", "REJECTED", "REVOKED", "CANCELLED"],
       default: "PENDING",
       index: true,
     },
