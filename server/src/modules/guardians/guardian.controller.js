@@ -294,3 +294,73 @@ export const revokeGuardian = async (req, res) => {
     });
   }
 };
+
+export const updateGuardianPermissions = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+    const { permissions } = req.body;
+
+    const allowedPermissions = [
+      "VIEW_VAULT",
+      "RECEIVE_RELEASE",
+      "VERIFY_EMERGENCY",
+    ];
+
+    // Validate permission input
+    if (
+      !Array.isArray(permissions) ||
+      !permissions.every((permission) =>
+        allowedPermissions.includes(permission),
+      ) ||
+      new Set(permissions).size !== permissions.length
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Permissions must be an array of unique valid permissions",
+      });
+    }
+
+    // Find owner's relationship
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      ownerId: userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian relationship not found",
+      });
+    }
+
+    if (["REVOKED", "REJECTED"].includes(guardian.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot update permissions for a revoked or rejected guardian",
+      });
+    }
+
+    guardian.permissions = permissions;
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian permissions updated successfully",
+      guardian: {
+        id: guardian._id,
+        status: guardian.status,
+        permissions: guardian.permissions,
+        updatedAt: guardian.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Update guardian permissions error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while updating guardian permissions",
+    });
+  }
+};
