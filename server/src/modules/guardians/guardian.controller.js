@@ -552,3 +552,46 @@ export const getIncomingGuardianInvitations = async (req, res) => {
     });
   }
 };
+
+export const getOutgoingGuardianInvitations = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const invitations = await Guardian.find({
+      ownerId: userId,
+      status: "PENDING",
+    })
+      .populate("guardianUserId", "name email")
+      .sort({ invitedAt: -1 })
+      .lean();
+
+    // Format outgoing invitations
+    const formattedInvitations = invitations.map((invitation) => ({
+      id: invitation._id,
+      relationship: invitation.relationship,
+      status: invitation.status,
+      permissions: invitation.permissions,
+      invitedAt: invitation.invitedAt,
+      guardian: invitation.guardianUserId
+        ? {
+            id: invitation.guardianUserId._id,
+            name: invitation.guardianUserId.name,
+            email: invitation.guardianUserId.email,
+          }
+        : null,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: formattedInvitations.length,
+      invitations: formattedInvitations,
+    });
+  } catch (error) {
+    console.error("Get outgoing invitations error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching invitations",
+    });
+  }
+};
