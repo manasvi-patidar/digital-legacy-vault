@@ -662,3 +662,59 @@ export const getGuardianById = async (req, res) => {
     });
   }
 };
+
+//Guardian Voluntary Withdrawal
+export const leaveGuardianRelationship = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+
+    if (!/^[0-9a-fA-F]{24}$/.test(guardianId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid guardian relationship ID",
+      });
+    }
+
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      guardianUserId: userId,
+    });
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian relationship not found",
+      });
+    }
+
+    if (guardian.status !== "ACTIVE") {
+      return res.status(400).json({
+        success: false,
+        message: "Only active relationships can be left",
+      });
+    }
+
+    guardian.status = "REVOKED";
+    guardian.revokedAt = new Date();
+
+    await guardian.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Guardian relationship left successfully",
+      guardian: {
+        id: guardian._id,
+        status: guardian.status,
+        revokedAt: guardian.revokedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Leave guardian relationship error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while leaving relationship",
+    });
+  }
+};
