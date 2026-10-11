@@ -595,3 +595,70 @@ export const getOutgoingGuardianInvitations = async (req, res) => {
     });
   }
 };
+
+export const getGuardianById = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { guardianId } = req.params;
+
+    if (!/^[0-9a-fA-F]{24}$/.test(guardianId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid guardian relationship ID",
+      });
+    }
+
+    const guardian = await Guardian.findOne({
+      _id: guardianId,
+      $or: [{ ownerId: userId }, { guardianUserId: userId }],
+    })
+      .populate("ownerId", "name email accountStatus")
+      .populate("guardianUserId", "name email accountStatus")
+      .lean();
+
+    if (!guardian) {
+      return res.status(404).json({
+        success: false,
+        message: "Guardian relationship not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      guardian: {
+        id: guardian._id,
+        relationship: guardian.relationship,
+        status: guardian.status,
+        permissions: guardian.permissions,
+        invitedAt: guardian.invitedAt,
+        acceptedAt: guardian.acceptedAt,
+        revokedAt: guardian.revokedAt,
+        createdAt: guardian.createdAt,
+        updatedAt: guardian.updatedAt,
+        owner: guardian.ownerId
+          ? {
+              id: guardian.ownerId._id,
+              name: guardian.ownerId.name,
+              email: guardian.ownerId.email,
+              accountStatus: guardian.ownerId.accountStatus,
+            }
+          : null,
+        guardian: guardian.guardianUserId
+          ? {
+              id: guardian.guardianUserId._id,
+              name: guardian.guardianUserId.name,
+              email: guardian.guardianUserId.email,
+              accountStatus: guardian.guardianUserId.accountStatus,
+            }
+          : null,
+      },
+    });
+  } catch (error) {
+    console.error("Get guardian details error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while fetching guardian details",
+    });
+  }
+};

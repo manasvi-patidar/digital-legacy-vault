@@ -11,6 +11,7 @@ import {
   rejectGuardianInvitation,
   getIncomingGuardianInvitations,
   getOutgoingGuardianInvitations,
+  getGuardianById,
 } from "./guardian.controller.js";
 
 import { addGuardianValidation } from "./guardian.validation.js";
@@ -27,6 +28,8 @@ router.get("/", protect, getGuardians);
 router.get("/invitations/incoming", protect, getIncomingGuardianInvitations);
 
 router.get("/invitations/outgoing", protect, getOutgoingGuardianInvitations);
+
+router.get("/:guardianId", protect, getGuardianById);
 
 router.patch("/:guardianId/accept", protect, acceptGuardianInvitation);
 
