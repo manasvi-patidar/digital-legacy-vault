@@ -193,14 +193,59 @@ export const acceptGuardianInvitation = async (req, res) => {
 export const getGuardians = async (req, res) => {
   try {
     const userId = req.user.userId;
+    const { status } = req.query;
 
-    const guardians = await Guardian.find({
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 10);
+
+    const allowedStatuses = [
+      "PENDING",
+      "ACTIVE",
+      "REJECTED",
+      "REVOKED",
+      "CANCELLED",
+    ];
+
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters",
+      });
+    }
+
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid guardian relationship status",
+      });
+    }
+
+    const filter = {
       $or: [{ ownerId: userId }, { guardianUserId: userId }],
-    })
-      .populate("ownerId", "name email accountStatus")
-      .populate("guardianUserId", "name email accountStatus")
-      .sort({ createdAt: -1 })
-      .lean();
+    };
+
+    if (status) {
+      filter.status = status;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [guardians, total] = await Promise.all([
+      Guardian.find(filter)
+        .populate("ownerId", "name email accountStatus")
+        .populate("guardianUserId", "name email accountStatus")
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Guardian.countDocuments(filter),
+    ]);
 
     const formattedGuardians = guardians.map((guardian) => ({
       id: guardian._id,
@@ -212,7 +257,6 @@ export const getGuardians = async (req, res) => {
       revokedAt: guardian.revokedAt,
       createdAt: guardian.createdAt,
       updatedAt: guardian.updatedAt,
-
       owner: guardian.ownerId
         ? {
             id: guardian.ownerId._id,
@@ -221,7 +265,6 @@ export const getGuardians = async (req, res) => {
             accountStatus: guardian.ownerId.accountStatus,
           }
         : null,
-
       guardian: guardian.guardianUserId
         ? {
             id: guardian.guardianUserId._id,
@@ -235,6 +278,12 @@ export const getGuardians = async (req, res) => {
     return res.status(200).json({
       success: true,
       count: formattedGuardians.length,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
       guardians: formattedGuardians,
     });
   } catch (error) {
