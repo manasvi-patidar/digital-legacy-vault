@@ -301,6 +301,13 @@ export const revokeGuardian = async (req, res) => {
     const userId = req.user.userId;
     const { guardianId } = req.params;
 
+    if (!/^[0-9a-fA-F]{24}$/.test(guardianId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid guardian relationship ID",
+      });
+    }
+
     const guardian = await Guardian.findOne({
       _id: guardianId,
       ownerId: userId,
