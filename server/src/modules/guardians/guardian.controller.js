@@ -313,10 +313,10 @@ export const revokeGuardian = async (req, res) => {
       });
     }
 
-    if (guardian.status === "REVOKED") {
+    if (guardian.status !== "ACTIVE") {
       return res.status(400).json({
         success: false,
-        message: "Guardian relationship is already revoked",
+        message: "Only active guardian relationships can be revoked",
       });
     }
 
